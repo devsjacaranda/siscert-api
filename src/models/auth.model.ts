@@ -10,7 +10,7 @@ const loginSchema = z.object({
 });
 
 const cadastroSchema = z.object({
-  login: z.string().min(1, 'Usuário é obrigatório').max(100, 'Usuário muito longo'),
+  login: z.string().min(1, 'Login é obrigatório').max(100, 'Login muito longo'),
   senha: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
   nome: z.string().max(200).optional(),
 });

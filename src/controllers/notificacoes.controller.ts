@@ -24,10 +24,6 @@ function parseBody<T>(parse: (body: unknown) => T, body: unknown): T {
 export async function getConfig(req: AuthReq, res: Res): Promise<void> {
   try {
     const userId = req.userId;
-    if (userId == null || typeof userId !== 'number') {
-      res.status(HttpStatusCodes.UNAUTHORIZED).json({ error: 'Usuário não autenticado' });
-      return;
-    }
     const config = await NotificacoesService.getConfig(userId);
     res.status(HttpStatusCodes.OK).json(config);
   } catch (e) {

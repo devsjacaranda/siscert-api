@@ -15,16 +15,9 @@ const SALT_ROUNDS = 10;
 export interface LoginResult {
   token: string;
   usuario: string;
-  role?: string;
-  status?: string;
 }
 
-export interface CadastroResult {
-  usuario: string;
-  message: string;
-}
-
-export async function cadastrar(body: CadastroBody): Promise<CadastroResult> {
+export async function cadastrar(body: CadastroBody): Promise<LoginResult> {
   const existente = await AuthRepo.findByLogin(body.login);
   if (existente) {
     throw new RouteError(HttpStatusCodes.CONFLICT, 'Login já em uso');
@@ -34,13 +27,9 @@ export async function cadastrar(body: CadastroBody): Promise<CadastroResult> {
     login: body.login,
     senhaHash,
     nome: body.nome,
-    role: 'usuario',
-    status: 'pendente',
   });
-  return {
-    usuario: user.login,
-    message: 'Conta criada. Aguarde aprovação do administrador.',
-  };
+  const token = gerarToken(user.id, user.login);
+  return { token, usuario: user.login };
 }
 
 export async function login(body: LoginBody): Promise<LoginResult> {
@@ -52,21 +41,8 @@ export async function login(body: LoginBody): Promise<LoginResult> {
   if (!senhaOk) {
     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Login ou senha inválidos');
   }
-  if (user.status !== 'ativo') {
-    throw new RouteError(
-      HttpStatusCodes.FORBIDDEN,
-      user.status === 'pendente'
-        ? 'Conta aguardando aprovação do administrador.'
-        : 'Conta bloqueada.'
-    );
-  }
   const token = gerarToken(user.id, user.login);
-  return {
-    token,
-    usuario: user.login,
-    role: user.role,
-    status: user.status,
-  };
+  return { token, usuario: user.login };
 }
 
 function gerarToken(userId: number, login: string): string {

@@ -18,15 +18,6 @@ const Paths = {
     Subscribe: '/subscribe',
     Unsubscribe: '/unsubscribe',
   },
-  TiposCertidao: {
-    _: '/tipos-certidao',
-  },
-  Empresas: {
-    _: '/empresas',
-  },
-  Grupos: {
-    _: '/grupos',
-  },
   Certidoes: {
     _: '/certidoes',
     List: '/',
@@ -41,25 +32,6 @@ const Paths = {
     Add: '/add',
     Update: '/update',
     Delete: '/delete/:id',
-  },
-  Admin: {
-    _: '/admin',
-    Stats: '/stats',
-    Usuarios: '/usuarios',
-    UsuarioById: '/usuarios/:id',
-    UsuarioAprovar: '/usuarios/:id/aprovar',
-    UsuarioBloquear: '/usuarios/:id/bloquear',
-    UsuarioReativar: '/usuarios/:id/reativar',
-    UsuarioGrupos: '/usuarios/:id/grupos',
-    Grupos: '/grupos',
-    GrupoById: '/grupos/:id',
-    GrupoUsuarios: '/grupos/:id/usuarios',
-    GrupoEmpresas: '/grupos/:id/empresas',
-    TiposCertidao: '/tipos-certidao',
-    TipoCertidaoById: '/tipos-certidao/:id',
-    Empresas: '/empresas',
-    EmpresaById: '/empresas/:id',
-    EmpresaTipos: '/empresas/:id/tipos-bloqueados',
   },
 } as const;
 
