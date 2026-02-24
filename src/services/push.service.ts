@@ -1,6 +1,5 @@
 import webPush from 'web-push';
 
-import AuthRepo from '@src/repos/AuthRepo';
 import * as certidaoRepo from '@src/repos/certidao-repo';
 import * as pushRepo from '@src/repos/push-repo';
 import prisma from '@src/lib/prisma';
@@ -133,13 +132,7 @@ export async function executarJobVencimentos(horarioFiltro?: string): Promise<vo
     users = users.filter((u) => u.horario === horarioFiltro);
   }
   for (const u of users) {
-    const grupoIds = await AuthRepo.getGruposByUserId(u.userId);
-    const user = await AuthRepo.findById(u.userId);
-    const isAdmin = user?.role === 'admin';
-    const certidoes = await certidaoRepo.findProximasVencimento(u.diasAntes, {
-      grupoIds: isAdmin ? undefined : grupoIds,
-      isAdmin,
-    });
+    const certidoes = await certidaoRepo.findProximasVencimento(u.diasAntes);
     if (certidoes.length === 0) continue;
 
     const payload: PushPayload = {

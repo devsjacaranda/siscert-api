@@ -14,19 +14,14 @@ datasource db {
 }
 
 model User {
-  id         Int       @id @default(autoincrement())
-  login      String    @unique
-  senhaHash  String
-  nome       String?
-  role       String    @default("usuario") // "admin" | "usuario"
-  status     String    @default("pendente") // "pendente" | "ativo" | "bloqueado"
-  approvedAt DateTime?
-  approvedBy Int?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  configNotificacoes  ConfigNotificacao?
-  pushSubscriptions   PushSubscription[]
-  grupos              UserGrupo[]
+  id        Int      @id @default(autoincrement())
+  login     String   @unique
+  senhaHash String
+  nome      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  configNotificacoes ConfigNotificacao?
+  pushSubscriptions  PushSubscription[]
 }
 
 model ConfigNotificacao {
@@ -57,63 +52,6 @@ model PushSubscription {
   @@index([userId])
 }
 
-model Grupo {
-  id        Int           @id @default(autoincrement())
-  nome      String
-  createdAt DateTime     @default(now())
-  users     UserGrupo[]
-  certidoes Certidao[]
-  empresas  GrupoEmpresa[]
-}
-
-model UserGrupo {
-  userId  Int
-  grupoId Int
-  acesso  String   @default("comum") // "comum" | "visualizador"
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grupo   Grupo    @relation(fields: [grupoId], references: [id], onDelete: Cascade)
-  @@id([userId, grupoId])
-}
-
-model GrupoEmpresa {
-  grupoId   Int
-  empresaId Int
-  grupo     Grupo   @relation(fields: [grupoId], references: [id], onDelete: Cascade)
-  empresa   Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  @@id([grupoId, empresaId])
-}
-
-model TipoCertidao {
-  id                   Int                  @id @default(autoincrement())
-  nome                 String               @unique
-  ordem                Int                  @default(0)
-  ativo                Boolean              @default(true)
-  empresaTipoBloqueados EmpresaTipoBloqueado[]
-}
-
-model Empresa {
-  id        Int                   @id @default(autoincrement())
-  slug      String                @unique
-  nome      String
-  cor       String?               // hex ex: #3b82f6
-  ordem     Int                   @default(0)
-  ativo     Boolean               @default(true)
-  createdAt DateTime              @default(now())
-  updatedAt DateTime              @updatedAt
-  grupos    GrupoEmpresa[]
-  tiposBloqueados EmpresaTipoBloqueado[]
-
-  @@map("Empresa")
-}
-
-model EmpresaTipoBloqueado {
-  empresaId      Int
-  tipoCertidaoId Int
-  empresa        Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  tipoCertidao   TipoCertidao @relation(fields: [tipoCertidaoId], references: [id], onDelete: Cascade)
-  @@id([empresaId, tipoCertidaoId])
-}
-
 model Certidao {
   id                   String   @id @default(cuid())
   empresa              String   // 'salviam' | 'jacaranda'
@@ -132,10 +70,6 @@ model Certidao {
   notas                Json     @default("[]") // Nota[]
   status               String   @default("ativa") // 'ativa' | 'arquivada' | 'lixeira'
   dataExclusao         DateTime?
-  grupoId              Int?
-  grupo                Grupo?   @relation(fields: [grupoId], references: [id], onDelete: SetNull)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
-
-  @@index([grupoId])
 }

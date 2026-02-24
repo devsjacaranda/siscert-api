@@ -52,7 +52,6 @@ export const certidaoCreateSchema = z
     pendencias: z.array(pendenciaSchema).default([]),
     documentosAdicionais: z.array(documentoSchema).default([]),
     notas: z.array(notaSchema).default([]),
-    grupoId: z.number().int().positive().optional().nullable(),
   })
   .refine(
     (data) => new Date(data.dataValidade) >= new Date(data.dataEmissao),
@@ -79,7 +78,6 @@ export const certidaoUpdateSchema = z
     status: statusCertidaoVidaSchema.optional(),
     /** ISO date string; quando status lixeira, enviado pelo frontend. */
     dataExclusao: z.string().optional().nullable(),
-    grupoId: z.number().int().positive().optional().nullable(),
   })
   .refine(
     (data) => {
