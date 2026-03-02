@@ -2,13 +2,13 @@
   "name": "siscert-api",
   "version": "0.0.0",
   "scripts": {
-    "build": "npm run lint && tsc --project tsconfig.prod.json",
+    "build": "npm run lint && tsc --project tsconfig.prod.json && node -e \"require('fs').copyFileSync('scripts/dist-main.js','dist/main.js')\"",
     "clean-install": "rm -rf ./node_modules && rm -r package-lock.json && npm i",
-    "dev": "cross-env DOTENV_CONFIG_PATH=./config/.env.development ts-node ./src/main",
+    "dev": "cross-env NODE_ENV=development DOTENV_CONFIG_PATH=./config/.env.development ts-node ./src/main",
     "dev:watch": "nodemon --exec \"npm run dev\" --watch ./src --ext .ts",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "start": "cross-env DOTENV_CONFIG_PATH=./config/.env.production node -r dotenv/config -r module-alias/register ./dist/main.js",
+    "start": "node run.js",
     "test": "cross-env NODE_ENV=test vitest",
     "type-check": "tsc -b --noEmit",
     "seed": "ts-node -r tsconfig-paths/register scripts/seed-user.ts",
@@ -18,7 +18,7 @@
     "node": ">=16.0.0"
   },
   "_moduleAliases": {
-    "@src": "dist"
+    "@src": "dist/src"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.4.1",

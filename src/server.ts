@@ -3,7 +3,6 @@ import express, { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import logger from 'jet-logger';
 import morgan from 'morgan';
-import path from 'path';
 
 import HttpStatusCodes from '@src/common/constants/HttpStatusCodes';
 import Paths from '@src/common/constants/Paths';
@@ -68,24 +67,15 @@ app.use((err: Error, _: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-// **** FrontEnd Content **** //
+// **** API status na raiz **** //
 
-// Set views directory (html)
-const viewsDir = path.join(__dirname, 'views');
-app.set('views', viewsDir);
-
-// Set static directory (js and css).
-const staticDir = path.join(__dirname, 'public');
-app.use(express.static(staticDir));
-
-// Nav to users pg by default
 app.get('/', (_: Request, res: Response) => {
-  return res.redirect('/users');
-});
-
-// Redirect to login if not logged in.
-app.get('/users', (_: Request, res: Response) => {
-  return res.sendFile('users.html', { root: viewsDir });
+  res.json({
+    ok: true,
+    message: 'SisCert API',
+    env: EnvVars.NodeEnv,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 /******************************************************************************

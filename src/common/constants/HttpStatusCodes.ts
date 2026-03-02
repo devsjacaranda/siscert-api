@@ -1,4 +1,4 @@
-import { ValueOf } from 'jet-validators';
+type ValueOf<T> = T[keyof T];
 
 /******************************************************************************
                                 Constants

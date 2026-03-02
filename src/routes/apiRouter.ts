@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import Paths from '@src/common/constants/Paths';
 import { jwtMiddleware } from '@src/middleware/jwt.middleware';
+import { asAuthHandler } from '@src/routes/common/express-types';
 
 import AuthRoutes from './AuthRoutes';
 import UserRoutes from './UserRoutes';
@@ -20,7 +21,7 @@ const apiRouter = Router();
 const authRouter = Router();
 authRouter.post(Paths.Auth.Cadastro, AuthRoutes.cadastro);
 authRouter.post(Paths.Auth.Login, AuthRoutes.login);
-authRouter.post(Paths.Auth.TrocarSenha, jwtMiddleware, AuthRoutes.trocarSenha);
+authRouter.post(Paths.Auth.TrocarSenha, jwtMiddleware, asAuthHandler(AuthRoutes.trocarSenha));
 apiRouter.use(Paths.Auth._, authRouter);
 
 // ----------------------- Certidões -------------------------------------- //
