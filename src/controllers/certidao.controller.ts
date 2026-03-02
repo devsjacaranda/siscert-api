@@ -8,10 +8,29 @@ import {
 import CertidaoService from '@src/services/certidao.service';
 import type { StatusCertidaoVida } from '@src/repos/certidao-repo';
 import type { NextFunction, Request, Response } from 'express';
+import type { AuthContextReq } from '@src/middleware/auth-context.middleware';
 
 type Req = Request;
 type Res = Response;
 type Next = NextFunction;
+
+function getAuthContext(req: Req): {
+  isAdmin: boolean;
+  grupoIds: number[];
+  grupoAcesso: Record<number, 'comum' | 'visualizador'>;
+} {
+  const authReq = req as AuthContextReq;
+  const userGrupos = authReq.userGrupos ?? [];
+  const grupoAcesso: Record<number, 'comum' | 'visualizador'> = {};
+  userGrupos.forEach((g) => {
+    grupoAcesso[g.grupoId] = g.acesso;
+  });
+  return {
+    isAdmin: authReq.userRole === 'admin' || authReq.userRole === 'superadmin',
+    grupoIds: authReq.userGrupoIds ?? [],
+    grupoAcesso,
+  };
+}
 
 function parseBody<T>(parse: (body: unknown) => T, body: unknown): T {
   try {
@@ -36,11 +55,11 @@ export async function listar(req: Req, res: Res, next: Next): Promise<void> {
       status === 'ativa' || status === 'arquivada' || status === 'lixeira'
         ? { status: status as StatusCertidaoVida }
         : undefined;
-    const certidoes = await CertidaoService.listar(filtro);
+    const ctx = getAuthContext(req);
+    const certidoes = await CertidaoService.listar(filtro, ctx);
     res.status(HttpStatusCodes.OK).json(certidoes);
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -51,11 +70,11 @@ export async function listar(req: Req, res: Res, next: Next): Promise<void> {
 export async function obter(req: Req, res: Res, next: Next): Promise<void> {
   try {
     const id = req.params.id as string;
-    const certidao = await CertidaoService.obter(id);
+    const ctx = getAuthContext(req);
+    const certidao = await CertidaoService.obter(id, ctx);
     res.status(HttpStatusCodes.OK).json(certidao);
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -66,11 +85,11 @@ export async function obter(req: Req, res: Res, next: Next): Promise<void> {
 export async function criar(req: Req, res: Res, next: Next): Promise<void> {
   try {
     const body = parseBody(parseCertidaoCreateBody, req.body);
-    const certidao = await CertidaoService.criar(body);
+    const ctx = getAuthContext(req);
+    const certidao = await CertidaoService.criar(body, ctx);
     res.status(HttpStatusCodes.CREATED).json(certidao);
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -82,11 +101,11 @@ export async function atualizar(req: Req, res: Res, next: Next): Promise<void> {
   try {
     const id = req.params.id as string;
     const body = parseBody(parseCertidaoUpdateBody, req.body);
-    const certidao = await CertidaoService.atualizar(id, body);
+    const ctx = getAuthContext(req);
+    const certidao = await CertidaoService.atualizar(id, body, ctx);
     res.status(HttpStatusCodes.OK).json(certidao);
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -97,11 +116,11 @@ export async function atualizar(req: Req, res: Res, next: Next): Promise<void> {
 export async function excluir(req: Req, res: Res, next: Next): Promise<void> {
   try {
     const id = req.params.id as string;
-    await CertidaoService.excluir(id);
+    const ctx = getAuthContext(req);
+    await CertidaoService.excluir(id, ctx);
     res.status(HttpStatusCodes.NO_CONTENT).send();
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -112,11 +131,11 @@ export async function excluir(req: Req, res: Res, next: Next): Promise<void> {
 export async function arquivar(req: Req, res: Res, next: Next): Promise<void> {
   try {
     const id = req.params.id as string;
-    const certidao = await CertidaoService.arquivar(id);
+    const ctx = getAuthContext(req);
+    const certidao = await CertidaoService.arquivar(id, ctx);
     res.status(HttpStatusCodes.OK).json(certidao);
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -127,11 +146,11 @@ export async function arquivar(req: Req, res: Res, next: Next): Promise<void> {
 export async function restaurar(req: Req, res: Res, next: Next): Promise<void> {
   try {
     const id = req.params.id as string;
-    const certidao = await CertidaoService.restaurar(id);
+    const ctx = getAuthContext(req);
+    const certidao = await CertidaoService.restaurar(id, ctx);
     res.status(HttpStatusCodes.OK).json(certidao);
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -142,11 +161,11 @@ export async function restaurar(req: Req, res: Res, next: Next): Promise<void> {
 export async function duplicar(req: Req, res: Res, next: Next): Promise<void> {
   try {
     const id = req.params.id as string;
-    const certidao = await CertidaoService.duplicar(id);
+    const ctx = getAuthContext(req);
+    const certidao = await CertidaoService.duplicar(id, ctx);
     res.status(HttpStatusCodes.CREATED).json(certidao);
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }

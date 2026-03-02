@@ -1,5 +1,3 @@
-import { ValueOf } from 'jet-validators';
-
 /******************************************************************************
                                 Constants
 ******************************************************************************/
@@ -389,5 +387,6 @@ const HttpStatusCodes = {
                             Export default
 ******************************************************************************/
 
+type ValueOf<T> = T[keyof T];
 type HttpStatusCodes = ValueOf<typeof HttpStatusCodes>;
 export default HttpStatusCodes;

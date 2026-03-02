@@ -15,9 +15,16 @@ const SALT_ROUNDS = 10;
 export interface LoginResult {
   token: string;
   usuario: string;
+  role?: string;
+  status?: string;
 }
 
-export async function cadastrar(body: CadastroBody): Promise<LoginResult> {
+export interface CadastroResult {
+  usuario: string;
+  message: string;
+}
+
+export async function cadastrar(body: CadastroBody): Promise<CadastroResult> {
   const existente = await AuthRepo.findByLogin(body.login);
   if (existente) {
     throw new RouteError(HttpStatusCodes.CONFLICT, 'Login já em uso');
@@ -27,9 +34,13 @@ export async function cadastrar(body: CadastroBody): Promise<LoginResult> {
     login: body.login,
     senhaHash,
     nome: body.nome,
+    role: 'usuario',
+    status: 'pendente',
   });
-  const token = gerarToken(user.id, user.login);
-  return { token, usuario: user.login };
+  return {
+    usuario: user.login,
+    message: 'Conta criada. Aguarde aprovação do administrador.',
+  };
 }
 
 export async function login(body: LoginBody): Promise<LoginResult> {
@@ -41,8 +52,21 @@ export async function login(body: LoginBody): Promise<LoginResult> {
   if (!senhaOk) {
     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Login ou senha inválidos');
   }
+  if (user.status !== 'ativo') {
+    throw new RouteError(
+      HttpStatusCodes.FORBIDDEN,
+      user.status === 'pendente'
+        ? 'Conta aguardando aprovação do administrador.'
+        : 'Conta bloqueada.'
+    );
+  }
   const token = gerarToken(user.id, user.login);
-  return { token, usuario: user.login };
+  return {
+    token,
+    usuario: user.login,
+    role: user.role,
+    status: user.status,
+  };
 }
 
 function gerarToken(userId: number, login: string): string {
@@ -69,8 +93,30 @@ export async function trocarSenha(
   await AuthRepo.updateSenha(userId, senhaHash);
 }
 
+/** Gera token JWT para um usuário (uso admin: "entrar como"). */
+export async function loginAs(targetUserId: number): Promise<LoginResult> {
+  const user = await AuthRepo.findById(targetUserId);
+  if (!user) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Usuário não encontrado');
+  }
+  if (user.status !== 'ativo') {
+    throw new RouteError(
+      HttpStatusCodes.FORBIDDEN,
+      'Só é possível entrar em contas ativas'
+    );
+  }
+  const token = gerarToken(user.id, user.login);
+  return {
+    token,
+    usuario: user.login,
+    role: user.role,
+    status: user.status,
+  };
+}
+
 export default {
   cadastrar,
   login,
   trocarSenha,
+  loginAs,
 } as const;

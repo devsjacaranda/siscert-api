@@ -4,7 +4,11 @@ import { z } from 'zod';
  * DTOs e validação (Zod) para certidões. Models apenas validação, sem lógica de DB.
  ******************************************************************************/
 
-const empresaSchema = z.enum(['salviam', 'jacaranda']);
+/** Aceita qualquer slug de empresa (ex.: salviam, jacaranda, samauma ou qualquer uma criada no admin). NÃO usar z.enum. */
+const empresaSchema = z
+  .string({ required_error: 'Empresa é obrigatória', invalid_type_error: 'Empresa deve ser o slug (texto) da empresa' })
+  .min(1, 'Empresa é obrigatória')
+  .max(200);
 const tipoDocumentoSchema = z.enum(['PDF', 'Link', 'Documento']);
 const statusCertidaoVidaSchema = z.enum(['ativa', 'arquivada', 'lixeira']);
 
@@ -52,6 +56,7 @@ export const certidaoCreateSchema = z
     pendencias: z.array(pendenciaSchema).default([]),
     documentosAdicionais: z.array(documentoSchema).default([]),
     notas: z.array(notaSchema).default([]),
+    grupoId: z.number().int().positive().optional().nullable(),
   })
   .refine(
     (data) => new Date(data.dataValidade) >= new Date(data.dataEmissao),
@@ -78,6 +83,7 @@ export const certidaoUpdateSchema = z
     status: statusCertidaoVidaSchema.optional(),
     /** ISO date string; quando status lixeira, enviado pelo frontend. */
     dataExclusao: z.string().optional().nullable(),
+    grupoId: z.number().int().positive().optional().nullable(),
   })
   .refine(
     (data) => {

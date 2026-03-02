@@ -14,8 +14,6 @@ export class RouteError extends Error {
 
   public constructor(status: HttpStatusCodes, message: string) {
     super(message);
-    // HttpStatusCodes is ValueOf<typeof HttpStatusCodes> (number union); eslint conflates with Error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.status = status;
   }
 }
