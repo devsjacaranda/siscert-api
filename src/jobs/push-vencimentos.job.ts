@@ -9,9 +9,9 @@ import PushService from '@src/services/push.service';
 
 function getNowHHMM(): string {
   const d = new Date();
-  const h = d.getHours().toString().padStart(2, '0');
-  const m = d.getMinutes().toString().padStart(2, '0');
-  return `${h}:${m}`;
+  const h = d.getHours();
+  const m = d.getMinutes();
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 function getDiaSemana(): number {
@@ -29,7 +29,9 @@ export function startPushVencimentosJob(): void {
 
       const users = await PushService.getUsersElegiveisParaPush();
 
-      const algumHorarioMatch = users.some((u) => u.horario === nowHHMM);
+      const algumHorarioMatch = users.some((u) =>
+        PushService.getHorariosNotificacaoDiarios(u.horario).includes(nowHHMM)
+      );
       if (!algumHorarioMatch) return;
 
       const algumFrequenciaMatch = users.some(
@@ -39,7 +41,7 @@ export function startPushVencimentosJob(): void {
       );
       if (!algumFrequenciaMatch) return;
 
-      await PushService.executarJobVencimentos(nowHHMM);
+      await PushService.executarJobVencimentos(nowHHMM, diaSemana);
     } catch (e) {
       logger.err(e instanceof Error ? e.message : 'Erro no job de push vencimentos');
     }

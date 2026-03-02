@@ -1,5 +1,6 @@
 import webPush from 'web-push';
 
+import AuthRepo from '@src/repos/AuthRepo';
 import * as certidaoRepo from '@src/repos/certidao-repo';
 import * as pushRepo from '@src/repos/push-repo';
 import prisma from '@src/lib/prisma';
@@ -98,6 +99,31 @@ export async function sendToUser(userId: number, payload: PushPayload): Promise<
   }
 }
 
+/**
+ * Normaliza horário para HH:mm (aceita 8:51, 08:51, 10:30, 7:22, etc.).
+ */
+function normalizarHorario(horario: string): string {
+  const partes = horario.trim().split(':');
+  const h = Math.max(0, Math.min(23, Number(partes[0]) || 0));
+  const m = Math.max(0, Math.min(59, Number(partes[1]) || 0));
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * Retorna os 3 horários obrigatórios de notificação diária (intervalo de 3h).
+ * Suporta qualquer horário: 8:51, 10:30, 7:22, etc.
+ * O usuário escolhe apenas o primeiro; os demais são recalculados automaticamente.
+ */
+export function getHorariosNotificacaoDiarios(horarioBase: string): string[] {
+  const base = normalizarHorario(horarioBase);
+  const [h, m] = base.split(':').map(Number);
+  return [
+    `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+    `${String((h + 3) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+    `${String((h + 6) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+  ];
+}
+
 /** Usuários elegíveis para push: notificações ligadas, config existe, tem subscription. */
 export async function getUsersElegiveisParaPush(): Promise<
   Array<{ userId: number; diasAntes: number; horario: string; frequencia: string }>
@@ -126,18 +152,57 @@ export async function getUsersElegiveisParaPush(): Promise<
 }
 
 /** Executa o job de envio de push para certidões próximas do vencimento. */
-export async function executarJobVencimentos(horarioFiltro?: string): Promise<void> {
+export async function executarJobVencimentos(
+  horarioFiltro?: string,
+  diaSemana?: number
+): Promise<void> {
   let users = await getUsersElegiveisParaPush();
   if (horarioFiltro) {
-    users = users.filter((u) => u.horario === horarioFiltro);
+    users = users.filter((u) =>
+      getHorariosNotificacaoDiarios(u.horario).includes(horarioFiltro)
+    );
   }
+  if (diaSemana !== undefined) {
+    users = users.filter(
+      (u) =>
+        u.frequencia === 'diaria' ||
+        (u.frequencia === 'semanal' && diaSemana === 1)
+    );
+  }
+  const hojeStr = new Date().toISOString().slice(0, 10);
+
   for (const u of users) {
-    const certidoes = await certidaoRepo.findProximasVencimento(u.diasAntes);
+    const grupoIds = await AuthRepo.getGruposByUserId(u.userId);
+    const user = await AuthRepo.findById(u.userId);
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    const certidoes = await certidaoRepo.findProximasVencimento(u.diasAntes, {
+      grupoIds: isAdmin ? undefined : grupoIds,
+      isAdmin,
+    });
     if (certidoes.length === 0) continue;
 
+    const vencemHoje = certidoes.filter((c) => c.dataValidade === hojeStr);
+    const outras = certidoes.filter((c) => c.dataValidade !== hojeStr);
+
+    let title: string;
+    let body: string;
+    if (vencemHoje.length > 0) {
+      title =
+        vencemHoje.length === 1
+          ? 'Siscert: 1 certidão vence hoje'
+          : `Siscert: ${vencemHoje.length} certidões vencem hoje`;
+      body =
+        outras.length > 0
+          ? `${vencemHoje.length} vencem hoje, ${outras.length} nos próximos dias.`
+          : `${vencemHoje.length} certidão(ões) vence(m) hoje.`;
+    } else {
+      title = 'Siscert: certidões próximas do vencimento';
+      body = `${certidoes.length} certidão(ões) próxima(s) de vencer.`;
+    }
+
     const payload: PushPayload = {
-      title: 'Siscert: certidões próximas do vencimento',
-      body: `${certidoes.length} certidão(ões) próxima(s) de vencer.`,
+      title,
+      body,
       url: '/',
       certidoes: certidoes.slice(0, 10).map((c) => ({
         id: c.id,
@@ -156,5 +221,6 @@ export default {
   unsubscribe,
   sendToUser,
   getUsersElegiveisParaPush,
+  getHorariosNotificacaoDiarios,
   executarJobVencimentos,
 } as const;

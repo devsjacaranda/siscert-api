@@ -24,11 +24,14 @@ function parseBody<T>(parse: (body: unknown) => T, body: unknown): T {
 export async function getConfig(req: AuthReq, res: Res): Promise<void> {
   try {
     const userId = req.userId;
+    if (userId == null || typeof userId !== 'number') {
+      res.status(HttpStatusCodes.UNAUTHORIZED).json({ error: 'Usuário não autenticado' });
+      return;
+    }
     const config = await NotificacoesService.getConfig(userId);
     res.status(HttpStatusCodes.OK).json(config);
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -44,7 +47,6 @@ export async function putConfig(req: AuthReq, res: Res): Promise<void> {
     res.status(HttpStatusCodes.OK).json(config);
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- e.status is number (HttpStatusCodes)
       res.status(e.status).json({ error: e.message });
       return;
     }

@@ -7,7 +7,12 @@ import NotificacoesRepo from '@src/repos/notificacoes-repo';
  ******************************************************************************/
 
 export async function getConfig(userId: number): Promise<ConfigNotificacoesBody> {
-  const row = await NotificacoesRepo.getByUserId(userId);
+  let row: Awaited<ReturnType<typeof NotificacoesRepo.getByUserId>>;
+  try {
+    row = await NotificacoesRepo.getByUserId(userId);
+  } catch {
+    return CONFIG_NOTIFICACOES_PADRAO;
+  }
   if (!row) {
     return CONFIG_NOTIFICACOES_PADRAO;
   }
