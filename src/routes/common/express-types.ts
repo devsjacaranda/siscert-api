@@ -1,4 +1,4 @@
-import { Request, RequestHandler, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 
 /******************************************************************************
                                 Types
@@ -15,9 +15,11 @@ export interface AuthReq extends Req {
   userId: number;
 }
 
-/** Helper para tipar handlers que recebem AuthReq após jwtMiddleware. */
+/** Wrapper para handlers que exigem AuthReq; use após jwtMiddleware. */
 export function asAuthHandler(
   handler: (req: AuthReq, res: Res) => void | Promise<void>
-): RequestHandler {
-  return handler as unknown as RequestHandler;
+): (req: Request, res: Response, next: NextFunction) => void {
+  return (req, res, next) => {
+    Promise.resolve(handler(req as AuthReq, res)).catch(next);
+  };
 }

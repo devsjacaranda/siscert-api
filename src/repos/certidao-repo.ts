@@ -1,4 +1,5 @@
 import type { Certidao as PrismaCertidao } from '../../generated/prisma/client';
+import type { Prisma } from '../../generated/prisma/client';
 import prisma from '@src/lib/prisma';
 
 /******************************************************************************
@@ -7,7 +8,7 @@ import prisma from '@src/lib/prisma';
 
 export interface CertidaoApi {
   id: string;
-  empresa: 'salviam' | 'jacaranda';
+  empresa: string;
   tipo: string;
   nome?: string | null;
   descricao?: string | null;
@@ -23,6 +24,7 @@ export interface CertidaoApi {
   notas: Array<{ id: string; texto: string; dataHora: string }>;
   status?: string;
   dataExclusao?: string | null;
+  grupoId?: number | null;
 }
 
 function rowToApi(row: PrismaCertidao): CertidaoApi {
@@ -31,7 +33,7 @@ function rowToApi(row: PrismaCertidao): CertidaoApi {
   const notas = Array.isArray(row.notas) ? row.notas : [];
   return {
     id: row.id,
-    empresa: row.empresa as 'salviam' | 'jacaranda',
+    empresa: row.empresa,
     tipo: row.tipo,
     nome: row.nome,
     descricao: row.descricao,
@@ -47,6 +49,7 @@ function rowToApi(row: PrismaCertidao): CertidaoApi {
     notas: notas as CertidaoApi['notas'],
     status: row.status,
     dataExclusao: row.dataExclusao != null ? row.dataExclusao.toISOString() : undefined,
+    grupoId: row.grupoId ?? undefined,
   };
 }
 
@@ -56,8 +59,21 @@ function rowToApi(row: PrismaCertidao): CertidaoApi {
 
 export type StatusCertidaoVida = 'ativa' | 'arquivada' | 'lixeira';
 
-export async function findMany(filtro?: { status?: StatusCertidaoVida }): Promise<CertidaoApi[]> {
-  const where = filtro?.status != null ? { status: filtro.status } : {};
+export type FindManyFiltro = {
+  status?: StatusCertidaoVida;
+  grupoIds?: number[] | null;
+  isAdmin?: boolean;
+};
+
+export async function findMany(filtro?: FindManyFiltro): Promise<CertidaoApi[]> {
+  const where: Prisma.CertidaoWhereInput = {};
+  if (filtro?.status != null) where.status = filtro.status;
+  if (filtro?.isAdmin !== true && filtro?.grupoIds != null) {
+    where.OR = [
+      { grupoId: null },
+      { grupoId: { in: filtro.grupoIds } },
+    ];
+  }
   const rows = await prisma.certidao.findMany({
     where,
     orderBy: [{ dataValidade: 'asc' }],
@@ -66,21 +82,29 @@ export async function findMany(filtro?: { status?: StatusCertidaoVida }): Promis
 }
 
 /** Certidões ativas com alerta ligado, que vencem dentro de X dias. */
-export async function findProximasVencimento(diasAntes: number): Promise<CertidaoApi[]> {
+export async function findProximasVencimento(
+  diasAntes: number,
+  filtro?: { grupoIds?: number[] | null; isAdmin?: boolean }
+): Promise<CertidaoApi[]> {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const limite = new Date(hoje);
   limite.setDate(limite.getDate() + diasAntes);
 
-  const rows = await prisma.certidao.findMany({
-    where: {
-      status: 'ativa',
-      alertaAtivo: true,
-      dataValidade: {
-        gte: hoje.toISOString().slice(0, 10),
-        lte: limite.toISOString().slice(0, 10),
-      },
+  const where: Prisma.CertidaoWhereInput = {
+    status: 'ativa',
+    alertaAtivo: true,
+    dataValidade: {
+      gte: hoje.toISOString().slice(0, 10),
+      lte: limite.toISOString().slice(0, 10),
     },
+  };
+  if (filtro?.isAdmin !== true && filtro?.grupoIds != null) {
+    where.OR = [{ grupoId: null }, { grupoId: { in: filtro.grupoIds } }];
+  }
+
+  const rows = await prisma.certidao.findMany({
+    where,
     orderBy: [{ dataValidade: 'asc' }],
   });
   return rows.map(rowToApi);
@@ -108,6 +132,7 @@ export async function create(data: {
   pendencias: unknown;
   documentosAdicionais: unknown;
   notas: unknown;
+  grupoId?: number | null;
 }): Promise<CertidaoApi> {
   const row = await prisma.certidao.create({
     data: {
@@ -126,6 +151,7 @@ export async function create(data: {
       documentosAdicionais: data.documentosAdicionais as object,
       notas: data.notas as object,
       status: 'ativa',
+      grupoId: data.grupoId ?? undefined,
     },
   });
   return rowToApi(row);
@@ -148,6 +174,7 @@ function buildUpdateData(data: {
   notas?: unknown;
   status?: string;
   dataExclusao?: Date | null;
+  grupoId?: number | null;
 }): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (data.empresa != null) out.empresa = data.empresa;
@@ -166,6 +193,7 @@ function buildUpdateData(data: {
   if (data.notas !== undefined) out.notas = data.notas;
   if (data.status != null) out.status = data.status;
   if (data.dataExclusao !== undefined) out.dataExclusao = data.dataExclusao;
+  if (data.grupoId !== undefined) out.grupoId = data.grupoId;
   return out;
 }
 
@@ -188,6 +216,7 @@ export async function update(
     notas?: unknown;
     status?: string;
     dataExclusao?: Date | null;
+    grupoId?: number | null;
   }
 ): Promise<CertidaoApi | null> {
   const payload = buildUpdateData(data);

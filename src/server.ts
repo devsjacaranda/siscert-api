@@ -56,7 +56,6 @@ app.use((err: Error, _: Request, res: Response, _next: NextFunction) => {
     logger.err(err, true);
   }
   if (err instanceof RouteError) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- err.status is number (HttpStatusCodes)
     res.status(err.status).json({ error: err.message });
     return;
   }

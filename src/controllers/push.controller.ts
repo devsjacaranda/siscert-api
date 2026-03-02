@@ -27,7 +27,6 @@ export function getVapidPublicKey(_req: Req, res: Res): void {
     res.status(HttpStatusCodes.OK).json({ publicKey: key });
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- RouteError.status is number
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -54,7 +53,6 @@ export async function subscribe(req: AuthReq, res: Res): Promise<void> {
     res.status(HttpStatusCodes.CREATED).json({ ok: true });
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- RouteError.status is number
       res.status(e.status).json({ error: e.message });
       return;
     }
@@ -73,7 +71,6 @@ export async function unsubscribe(req: AuthReq, res: Res): Promise<void> {
     res.status(HttpStatusCodes.OK).json({ ok: true, deleted });
   } catch (e) {
     if (e instanceof RouteError) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- RouteError.status is number
       res.status(e.status).json({ error: e.message });
       return;
     }

@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import Paths from '@src/common/constants/Paths';
 import { jwtMiddleware } from '@src/middleware/jwt.middleware';
-import * as NotificacoesController from '@src/controllers/notificacoes.controller';
 import { asAuthHandler } from '@src/routes/common/express-types';
+import * as NotificacoesController from '@src/controllers/notificacoes.controller';
 
 /******************************************************************************
  * Router: GET/PUT /notificacoes/config. Todas as rotas protegidas por JWT.
